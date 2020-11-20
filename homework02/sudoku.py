@@ -96,7 +96,14 @@ def get_block(grid: tp.List[tp.List[str]], pos: tp.Tuple[int, int]) -> tp.List[s
     >>> get_block(grid, (8, 8))
     ['2', '8', '.', '.', '.', '5', '.', '7', '9']
     """
-    pass
+    first_row = (pos[0] // 3) * 3
+    first_col = (pos[1] // 3) * 3
+
+    values = []
+    for row in range(first_row, first_row + 3):
+        for col in range(first_col, first_col + 3):
+            values.append(grid[row][col])
+    return values
 
 
 def find_empty_positions(grid: tp.List[tp.List[str]]) -> tp.Optional[tp.Tuple[int, int]]:
@@ -109,8 +116,11 @@ def find_empty_positions(grid: tp.List[tp.List[str]]) -> tp.Optional[tp.Tuple[in
     >>> find_empty_positions([['1', '2', '3'], ['4', '5', '6'], ['.', '8', '9']])
     (2, 0)
     """
-    pass
-
+    for row in range(len(grid)):
+        for col in range(len(grid)):
+            if grid[row][col] == ".":
+                return row, col
+    return None
 
 def find_possible_values(grid: tp.List[tp.List[str]], pos: tp.Tuple[int, int]) -> tp.Set[str]:
     """Вернуть множество возможных значения для указанной позиции
@@ -123,7 +133,11 @@ def find_possible_values(grid: tp.List[tp.List[str]], pos: tp.Tuple[int, int]) -
     >>> values == {'2', '5', '9'}
     True
     """
-    pass
+    possible_values = {str(i) for i in range(1, 10)}
+    possible_values = possible_values.difference(get_row(grid, pos))
+    possible_values = possible_values.difference(get_col(grid, pos))
+    possible_values = possible_values.difference(get_block(grid, pos))
+    return possible_values
 
 
 def solve(grid: tp.List[tp.List[str]]) -> tp.Optional[tp.List[tp.List[str]]]:
@@ -139,13 +153,55 @@ def solve(grid: tp.List[tp.List[str]]) -> tp.Optional[tp.List[tp.List[str]]]:
     >>> solve(grid)
     [['5', '3', '4', '6', '7', '8', '9', '1', '2'], ['6', '7', '2', '1', '9', '5', '3', '4', '8'], ['1', '9', '8', '3', '4', '2', '5', '6', '7'], ['8', '5', '9', '7', '6', '1', '4', '2', '3'], ['4', '2', '6', '8', '5', '3', '7', '9', '1'], ['7', '1', '3', '9', '2', '4', '8', '5', '6'], ['9', '6', '1', '5', '3', '7', '2', '8', '4'], ['2', '8', '7', '4', '1', '9', '6', '3', '5'], ['3', '4', '5', '2', '8', '6', '1', '7', '9']]
     """
-    pass
+    position = find_empty_positions(grid)
+    if position is None:
+        return grid
+
+    for value in find_possible_values(grid, position):
+        grid[position[0]][position[1]] = value
+        solution = solve(grid)
+        if solution is not None:
+            return solution
+    grid[position[0]][position[1]] = "."
+    return None
+
 
 
 def check_solution(solution: tp.List[tp.List[str]]) -> bool:
     """ Если решение solution верно, то вернуть True, в противном случае False """
     # TODO: Add doctests with bad puzzles
-    pass
+    check_option = {str(i) for i in range(1, 10)}
+
+    # Checking rows
+    col = 0
+    checking_array = []
+    for row in range(len(solution)):
+        pos = row, col
+        checking_array = get_row(solution, pos)
+        if (len(check_option.intersection(set(checking_array))) != 9) or find_empty_positions(solution) is not None:
+            return False
+
+    # Checking cols
+
+    row = 0
+    checking_array = []
+    for col in range(len(solution)):
+        pos = row, col
+        checking_array = get_col(solution, pos)
+        if (len(check_option.intersection(set(checking_array))) != 9) or find_empty_positions(solution) is not None:
+            return False
+
+    # Checking blocks
+    row = 0
+    col = 0
+    checking_array = []
+    for row in range(0, len(solution), 3):
+        for col in range(0, len(solution), 3):
+            pos = row, col
+            checking_array = get_block(solution, pos)
+            if (len(check_option.intersection(set(checking_array))) != 9) or find_empty_positions(solution) is not None:
+                return False
+    return True
 
 
 def generate_sudoku(N: int) -> tp.List[tp.List[str]]:
@@ -170,7 +226,25 @@ def generate_sudoku(N: int) -> tp.List[tp.List[str]]:
     >>> check_solution(solution)
     True
     """
-    pass
+    import random
+    default_data = [["." for k in range(9)] for i in range(9)]
+    if N == 0:
+        return default_data
+    generation = solve(default_data)
+
+    def coor(arr: tp.List[tp.List[str]]):
+        row = random.randint(0, 8)
+        col = random.randint(0, 8)
+        if arr[row][col] != ".":
+            arr[row][col] = "."
+            return arr
+        else:
+            solution = coor(arr)
+            return solution
+
+    for step in range(81 - N):
+        generation = coor(generation)
+    return generation
 
 
 if __name__ == "__main__":
